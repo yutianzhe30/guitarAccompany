@@ -25,9 +25,9 @@ export default function Metronome() {
   }, [synth]);
 
   useEffect(() => {
-    Tone.Transport.bpm.value = bpm;
+    Tone.getTransport().bpm.value = bpm;
     return () => {
-      Tone.Transport.stop();
+      Tone.getTransport().stop();
     };
   }, [bpm]);
 
@@ -37,11 +37,11 @@ export default function Metronome() {
       const repeat = (time: number) => {
         synth.triggerAttackRelease('C4', '16n', time); // Higher note, shorter duration
       };
-      Tone.Transport.scheduleRepeat(repeat, '4n');
-      Tone.Transport.start();
+      Tone.getTransport().scheduleRepeat(repeat, '4n');
+      Tone.getTransport().start();
     } else {
-      Tone.Transport.stop();
-      Tone.Transport.cancel();
+      Tone.getTransport().stop();
+      Tone.getTransport().cancel();
     }
     setIsPlaying(!isPlaying);
   };

@@ -7,10 +7,17 @@ const CHORDS = {
   types: ['major', 'minor', '7', 'm7', 'maj7', 'dim']
 };
 
+interface ChordItem {
+  root: string;
+  type: string;
+}
+
 export default function ChordPlayer() {
   const [selectedRoot, setSelectedRoot] = useState('C');
   const [selectedType, setSelectedType] = useState('major');
   const [isMuted, setIsMuted] = useState(false);
+  const [chordList, setChordList] = useState<ChordItem[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [synth] = useState(
     new Tone.PolySynth().toDestination()
   );
@@ -56,6 +63,33 @@ export default function ChordPlayer() {
     } else {
       synth.volume.value = 0;
     }
+  };
+
+  const addChordToList = () => {
+    setChordList([...chordList, { root: selectedRoot, type: selectedType }]);
+  };
+
+  const removeChord = (index: number) => {
+    const newList = chordList.filter((_, i) => i !== index);
+    setChordList(newList);
+  };
+
+  const playChordSequence = async () => {
+    if (isMuted || isPlaying || chordList.length === 0) return;
+    
+    setIsPlaying(true);
+    await Tone.start();
+    
+    const now = Tone.now();
+    chordList.forEach((chord, index) => {
+      const notes = getChordNotes(chord.root, chord.type);
+      synth.triggerAttackRelease(notes, "4n", now + index * 0.5);
+    });
+
+    // Wait for the sequence to finish
+    setTimeout(() => {
+      setIsPlaying(false);
+    }, chordList.length * 500);
   };
 
   return (
@@ -107,12 +141,55 @@ export default function ChordPlayer() {
           ))}
         </div>
 
-        <button
-          onClick={playChord}
-          className="w-full py-4 px-6 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-lg font-semibold"
-        >
-          Play {selectedRoot}{selectedType === 'major' ? '' : selectedType}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={playChord}
+            className="flex-1 py-4 px-6 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-lg font-semibold"
+          >
+            Play {selectedRoot}{selectedType === 'major' ? '' : selectedType}
+          </button>
+          <button
+            onClick={addChordToList}
+            className="py-4 px-6 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+          >
+            Add to List
+          </button>
+        </div>
+
+        {chordList.length > 0 && (
+          <div className="border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Chord Sequence</h3>
+              <button
+                onClick={playChordSequence}
+                disabled={isPlaying}
+                className={`py-2 px-4 rounded-lg text-white transition-colors ${
+                  isPlaying ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                }`}
+              >
+                {isPlaying ? 'Playing...' : 'Play Sequence'}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {chordList.map((chord, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-2 bg-gray-100 rounded-lg p-2"
+                >
+                  <span className="font-medium">
+                    {chord.root}{chord.type === 'major' ? '' : chord.type}
+                  </span>
+                  <button
+                    onClick={() => removeChord(index)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
