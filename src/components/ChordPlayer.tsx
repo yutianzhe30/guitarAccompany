@@ -12,12 +12,17 @@ interface ChordItem {
   type: string;
 }
 
-export default function ChordPlayer() {
+interface Props {
+  bpm: number;
+}
+
+export default function ChordPlayer({ bpm }: Props) {
   const [selectedRoot, setSelectedRoot] = useState('C');
   const [selectedType, setSelectedType] = useState('major');
   const [isMuted, setIsMuted] = useState(false);
   const [chordList, setChordList] = useState<ChordItem[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLooping, setIsLooping] = useState(false);
   const [synth] = useState(
     new Tone.PolySynth().toDestination()
   );
@@ -79,17 +84,36 @@ export default function ChordPlayer() {
     
     setIsPlaying(true);
     await Tone.start();
-    
-    const now = Tone.now();
-    chordList.forEach((chord, index) => {
-      const notes = getChordNotes(chord.root, chord.type);
-      synth.triggerAttackRelease(notes, "4n", now + index * 0.5);
-    });
 
-    // Wait for the sequence to finish
-    setTimeout(() => {
-      setIsPlaying(false);
-    }, chordList.length * 500);
+    let currentChordIndex = 0;
+    
+    // Schedule the chord sequence
+    const loop = new Tone.Loop((time) => {
+      const chord = chordList[currentChordIndex];
+      const notes = getChordNotes(chord.root, chord.type);
+      synth.triggerAttackRelease(notes, "4n", time);
+      
+      // Move to next chord
+      currentChordIndex = (currentChordIndex + 1) % chordList.length;
+      
+      // If not looping and we've played all chords, stop
+      if (!isLooping && currentChordIndex === 0) {
+        setTimeout(() => {
+          stopChordSequence();
+        }, 0);
+      }
+    }, "1n").start(0);
+
+    // Start the transport if it's not already running
+    if (Tone.getTransport().state !== "started") {
+      Tone.getTransport().start();
+    }
+  };
+
+  const stopChordSequence = () => {
+    Tone.getTransport().stop();
+    Tone.getTransport().cancel();
+    setIsPlaying(false);
   };
 
   return (
@@ -160,15 +184,27 @@ export default function ChordPlayer() {
           <div className="border rounded-lg p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Chord Sequence</h3>
-              <button
-                onClick={playChordSequence}
-                disabled={isPlaying}
-                className={`py-2 px-4 rounded-lg text-white transition-colors ${
-                  isPlaying ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
-                }`}
-              >
-                {isPlaying ? 'Playing...' : 'Play Sequence'}
-              </button>
+              <div className="flex gap-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isLooping}
+                    onChange={(e) => setIsLooping(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600"
+                  />
+                  <span className="text-sm">Loop</span>
+                </label>
+                <button
+                  onClick={isPlaying ? stopChordSequence : playChordSequence}
+                  disabled={chordList.length === 0}
+                  className={`py-2 px-4 rounded-lg text-white transition-colors ${
+                    chordList.length === 0 ? 'bg-gray-400' :
+                    isPlaying ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                  }`}
+                >
+                  {isPlaying ? 'Stop' : 'Play Sequence'}
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               {chordList.map((chord, index) => (

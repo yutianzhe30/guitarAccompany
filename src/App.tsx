@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Guitar } from 'lucide-react';
 import Metronome from './components/Metronome';
 import ChordPlayer from './components/ChordPlayer';
 import PracticeTimer from './components/PracticeTimer';
 
 function App() {
+  const [bpm, setBpm] = useState(80);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
@@ -18,8 +20,8 @@ function App() {
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          <ChordPlayer />
-          <Metronome />
+          <ChordPlayer bpm={bpm} />
+          <Metronome initialBpm={bpm} onBpmChange={setBpm} />
           <PracticeTimer />
         </div>
 

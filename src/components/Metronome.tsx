@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import * as Tone from 'tone';
 import { Play, Pause, Plus, Minus } from 'lucide-react';
 
-export default function Metronome() {
-  const [bpm, setBpm] = useState(80);
+interface Props {
+  initialBpm: number;
+  onBpmChange: (bpm: number) => void;
+}
+
+export default function Metronome({ initialBpm, onBpmChange }: Props) {
+  const [bpm, setBpm] = useState(initialBpm);
   const [isPlaying, setIsPlaying] = useState(false);
   const [synth] = useState(
     new Tone.MembraneSynth({
@@ -31,6 +36,21 @@ export default function Metronome() {
     };
   }, [bpm]);
 
+  const handleBpmChange = (newBpm: number) => {
+    setBpm(newBpm);
+    onBpmChange(newBpm);
+  };
+
+  const increaseBpm = () => {
+    const newBpm = Math.min(bpm + 5, 220);
+    handleBpmChange(newBpm);
+  };
+
+  const decreaseBpm = () => {
+    const newBpm = Math.max(bpm - 5, 40);
+    handleBpmChange(newBpm);
+  };
+
   const toggleMetronome = async () => {
     await Tone.start();
     if (!isPlaying) {
@@ -51,14 +71,14 @@ export default function Metronome() {
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Metronome</h2>
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => setBpm(Math.max(40, bpm - 5))}
+          onClick={decreaseBpm}
           className="p-2 rounded-full hover:bg-gray-100"
         >
           <Minus className="w-6 h-6 text-gray-600" />
         </button>
         <span className="text-4xl font-bold text-gray-800">{bpm}</span>
         <button
-          onClick={() => setBpm(Math.min(220, bpm + 5))}
+          onClick={increaseBpm}
           className="p-2 rounded-full hover:bg-gray-100"
         >
           <Plus className="w-6 h-6 text-gray-600" />
